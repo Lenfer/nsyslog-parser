@@ -151,6 +151,30 @@ function parse(line) {
 		entry.structuredData = sdata.map(item=>{
 			var map = {}, nokeys = [];
 			var lastKey = null;
+			function setSdParam(value, addLast) {
+				// If key already exist
+				if (map[lastKey]) {
+					// If not array and flag add last
+					if (!map[lastKey].push && addLast) {
+						map[lastKey] += value;
+					}
+					// If not array and no flag add last
+					else if (!map[lastKey].push && !addLast) {
+						map[lastKey] = [map[lastKey], value];
+					}
+					// if array and no flag add last
+					else if (map[lastKey].push && !addLast) {
+						map[lastKey].push(value);
+					}
+					// if array and flag add last
+					else if (map[lastKey].push && addLast) {
+						var lastVal = map[lastKey].pop() + value;
+						map[lastKey].push(lastVal);
+					}
+				} else {
+					map[lastKey] = value;
+				}
+			}
 			idx = entry.message.indexOf(item)+item.length+1;
 			item.replace(/(^\[)|(\]$)/g,"").split(" ").forEach((t,i)=>{
 				// Extra space
@@ -165,14 +189,14 @@ function parse(line) {
 					// Correct key/value pair
 					if(kv[0] && kv[1] && kv[1]!='"') {
 						lastKey = kv.shift();
-						map[lastKey] = kv.join("=").replace(/\"/g,"");
+						setSdParam(kv.join("=").replace(/\"/g,""));
 					}
 					// Last key had values separated by spaces
 					else if(kv[0] && kv[1]===undefined){
-						map[lastKey] += " "+(kv[0]||"").replace(/\"/g,"");
+						setSdParam(" "+(kv[0]||"").replace(/\"/g,""), true);
 					}
 					else if(kv[0] && (!kv[1].length || kv[1]=='"')){
-						map[lastKey] += " "+(kv[0]||"").replace(/\"/g,"")+"=";
+						setSdParam(" "+(kv[0]||"").replace(/\"/g,"")+"=", true);
 					}
 				}
 			});
